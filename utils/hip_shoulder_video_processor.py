@@ -95,9 +95,13 @@ def process_video_with_hip_shoulder(video_path, pose_data, hs_data, metadata, ou
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    # Video writer - use mp4v for better compatibility on Streamlit Cloud
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # Video writer - use XVID for browser compatibility, fallback to mp4v
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    
+    if not out.isOpened():
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
         cap.release()
