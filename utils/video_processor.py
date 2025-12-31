@@ -7,10 +7,10 @@ from utils.pose_drawing import draw_pose_on_frame
 
 def create_video_writer(output_path, width, height, fps):
     """
-    Create video writer with H264 codec.
+    Create video writer with WebM/VP9 codec for browser compatibility.
     
     Args:
-        output_path: Path to save output video
+        output_path: Path to save output video (should end with .webm)
         width: Video width
         height: Video height
         fps: Frames per second
@@ -18,12 +18,23 @@ def create_video_writer(output_path, width, height, fps):
     Returns:
         cv2.VideoWriter object
     """
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    # Ensure output path has .webm extension
+    if not output_path.endswith('.webm'):
+        output_path = output_path.rsplit('.', 1)[0] + '.webm'
+    
+    # Try VP9 first (best quality, widely supported)
+    fourcc = cv2.VideoWriter_fourcc(*'VP90')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
-        # Fallback to mp4v
+        # Fallback to VP8
+        fourcc = cv2.VideoWriter_fourcc(*'VP80')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    
+    if not out.isOpened():
+        # Last resort: try mp4v (less compatible but might work locally)
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        output_path = output_path.rsplit('.', 1)[0] + '.mp4'
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     return out
