@@ -7,7 +7,7 @@ from utils.pose_drawing import draw_pose_on_frame
 
 def create_video_writer(output_path, width, height, fps):
     """
-    Create video writer with H264 codec.
+    Create video writer with mp4v codec for Streamlit Cloud compatibility.
     
     Args:
         output_path: Path to save output video
@@ -18,13 +18,9 @@ def create_video_writer(output_path, width, height, fps):
     Returns:
         cv2.VideoWriter object
     """
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    # Use mp4v for better compatibility on Streamlit Cloud
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    
-    if not out.isOpened():
-        # Fallback to mp4v
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     return out
 
