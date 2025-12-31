@@ -7,7 +7,7 @@ from utils.pose_drawing import draw_pose_on_frame
 
 def create_video_writer(output_path, width, height, fps):
     """
-    Create video writer with XVID codec for browser and Streamlit Cloud compatibility.
+    Create video writer with VP80 codec for WebM format (universal browser support).
     
     Args:
         output_path: Path to save output video
@@ -18,12 +18,12 @@ def create_video_writer(output_path, width, height, fps):
     Returns:
         cv2.VideoWriter object
     """
-    # Use XVID codec - works with MP4 container and supported by browsers
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    # Use VP80 codec for WebM - universally supported by browsers
+    fourcc = cv2.VideoWriter_fourcc(*'VP80')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
-        # Fallback to mp4v if XVID not available
+        # Fallback to mp4v if VP80 not available
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     

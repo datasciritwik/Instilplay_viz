@@ -128,8 +128,8 @@ def process_video_with_kinematics(video_path, pose_data, kin_data, metadata, out
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    # Video writer - use XVID for browser compatibility, fallback to mp4v
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    # Video writer - use VP80 for browser compatibility, fallback to mp4v
+    fourcc = cv2.VideoWriter_fourcc(*'VP80')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
