@@ -136,7 +136,7 @@ def render():
         pose_data = load_pose_data(JSON_PATH)
         
         # Use temp file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.avi') as tmp:
             output_path = tmp.name
         
         result = process_video_with_fbr(
