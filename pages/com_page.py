@@ -6,7 +6,7 @@ import streamlit as st
 import os
 import cv2
 import traceback
-from utils.data_loader import load_com_data, load_pose_data, load_metadata
+import utils.data_loader as data_loader
 
 # Constants
 VIDEO_PATH = "data/video_preview_h264.mp4"
@@ -70,9 +70,9 @@ def render():
         return
     
     # Load data
-    com_data = load_com_data(JSON_PATH)
-    pose_data = load_pose_data(JSON_PATH)
-    metadata = load_metadata(JSON_PATH)
+    com_data = data_loader.load_com_data(JSON_PATH)
+    pose_data = data_loader.load_pose_data(JSON_PATH)
+    metadata = data_loader.load_metadata(JSON_PATH)
     
     if not com_data:
         st.warning("No COM analysis data found in JSON file")
