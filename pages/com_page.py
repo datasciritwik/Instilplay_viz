@@ -144,7 +144,7 @@ def render():
         import tempfile
         
         # Use temp file that will be auto-deleted
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
             output_path = tmp.name
         
         result = process_video_with_com_overlay(

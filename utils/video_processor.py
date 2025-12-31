@@ -19,7 +19,7 @@ def create_video_writer(output_path, width, height, fps):
         cv2.VideoWriter object
     """
     # Use VP80 codec for WebM - universally supported by browsers
-    fourcc = cv2.VideoWriter_fourcc(*'VP80')
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
