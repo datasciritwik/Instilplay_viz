@@ -4,24 +4,7 @@ Shows hip, torso, and shoulder lines with rotation indicators.
 """
 import cv2
 import numpy as np
-import logging
-import subprocess
-import tempfile
-import os
 from utils.pose_drawing import draw_pose_on_frame
-
-logger = logging.getLogger(__name__)
-
-def _ensure_faststart(output_path):
-    try:
-        fd, tmp = tempfile.mkstemp(suffix=".mp4", dir=os.path.dirname(output_path) or None)
-        os.close(fd)
-        cmd = ["ffmpeg", "-y", "-i", output_path, "-c", "copy", "-movflags", "+faststart", tmp]
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        os.replace(tmp, output_path)
-        logger.info("Remuxed video with faststart: %s", output_path)
-    except Exception as e:
-        logger.warning("ffmpeg remux failed for %s: %s", output_path, e) 
 
 def draw_kinematics_overlay(frame, landmarks, width, height, frame_idx, 
                             hip_frame, torso_frame, shoulder_frame):
@@ -137,75 +120,55 @@ def process_video_with_kinematics(video_path, pose_data, kin_data, metadata, out
     Returns:
         Output video path or None if failed
     """
-    cap = None
-    out = None
-    try:
-        cap = cv2.VideoCapture(video_path)
-        if not cap.isOpened():
-            logger.error("Failed to open input video: %s", video_path)
-            return None
-        
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        
-        # Video writer - use mp4v codec for MP4 container
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        return None
+    
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    
+    # Video writer
+    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    
+    if not out.isOpened():
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-        if not out.isOpened():
-            logger.error("Failed to open VideoWriter for %s", output_path)
-            return None
-        
-        # Extract kinematics data
-        peaks = kin_data.get("peaks", {})
-        hip_frame = peaks.get("hip_frame", 0)
-        torso_frame = peaks.get("torso_frame", 0)
-        shoulder_frame = peaks.get("shoulder_frame", 0)
-        
-        # Create pose map
-        pose_map = {item['frame_idx']: item['landmarks'] for item in pose_data if item.get('landmarks')}
-        
-        frame_idx = 0
-        
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-            
-            # Draw pose if available
-            landmarks = pose_map.get(frame_idx)
-            if landmarks:
-                frame = draw_pose_on_frame(frame, landmarks, width, height)
-                
-                # Draw kinematics overlay
-                frame = draw_kinematics_overlay(frame, landmarks, width, height, 
-                                               frame_idx, hip_frame, torso_frame, shoulder_frame)
-            
-            out.write(frame)
-            frame_idx += 1
-        
-        try:
-            _ensure_faststart(output_path)
-        except Exception:
-            pass
-        
-        return output_path
-    except Exception as e:
-        logger.exception("Error while processing kinematics overlay: %s", e)
+    
+    if not out.isOpened():
+        cap.release()
         return None
-    finally:
-        try:
-            if cap is not None:
-                cap.release()
-        except Exception:
-            pass
-        try:
-            if out is not None:
-                out.release()
-        except Exception:
-            pass
+    
+    # Extract kinematics data
+    peaks = kin_data.get("peaks", {})
+    hip_frame = peaks.get("hip_frame", 0)
+    torso_frame = peaks.get("torso_frame", 0)
+    shoulder_frame = peaks.get("shoulder_frame", 0)
+    
+    # Create pose map
+    pose_map = {item['frame_idx']: item['landmarks'] for item in pose_data if item.get('landmarks')}
+    
+    frame_idx = 0
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Draw pose if available
+        landmarks = pose_map.get(frame_idx)
+        if landmarks:
+            frame = draw_pose_on_frame(frame, landmarks, width, height)
+            
+            # Draw kinematics overlay
+            frame = draw_kinematics_overlay(frame, landmarks, width, height, 
+                                           frame_idx, hip_frame, torso_frame, shoulder_frame)
+        
+        out.write(frame)
+        frame_idx += 1
+    
+    cap.release()
+    out.release()
+    
+    return output_path

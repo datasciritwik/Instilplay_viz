@@ -4,9 +4,7 @@ Displays all 7 COM visualizations with metrics dashboard.
 """
 import streamlit as st
 import os
-import cv2
-import traceback
-import utils.data_loader as data_loader
+from utils.data_loader import load_com_data, load_pose_data, load_metadata
 
 # Constants
 VIDEO_PATH = "data/video_preview_h264.mp4"
@@ -70,9 +68,9 @@ def render():
         return
     
     # Load data
-    com_data = data_loader.load_com_data(JSON_PATH)
-    pose_data = data_loader.load_pose_data(JSON_PATH)
-    metadata = data_loader.load_metadata(JSON_PATH)
+    com_data = load_com_data(JSON_PATH)
+    pose_data = load_pose_data(JSON_PATH)
+    metadata = load_metadata(JSON_PATH)
     
     if not com_data:
         st.warning("No COM analysis data found in JSON file")
@@ -138,71 +136,27 @@ def render():
     
     st.markdown("---")
     
-    # Video Section (processed)
+    # Video Section with COM Overlay
     st.markdown("### Video with COM Overlay")
-    disable_processing = st.checkbox("Disable processing and show original video (safe fallback)", value=False)
-    if disable_processing:
-        try:
-            with open(VIDEO_PATH, "rb") as vf:
-                st.video(vf.read())
-        except Exception:
-            st.video(VIDEO_PATH)
-    else:
-        with st.spinner("Processing video with COM overlay..."):
+    
+    with st.spinner("Processing video with COM annotations..."):
         from utils.video_processor import process_video_with_com_overlay
         import tempfile
-
-        pose_data = load_pose_data(JSON_PATH)
-
-        # Quick OpenCV diagnostic (helps reveal low-level failures)
-        try:
-            cap_test = cv2.VideoCapture(VIDEO_PATH)
-            if not cap_test.isOpened():
-                st.warning(f"OpenCV cannot open input video: {VIDEO_PATH}")
-            else:
-                ret_test, frame_test = cap_test.read()
-                st.write(f"OpenCV test read: ret={ret_test}, frame_shape={None if not ret_test else frame_test.shape}")
-            cap_test.release()
-        except Exception as e:
-            st.error(f"OpenCV diagnostic failed: {e}")
-            st.code(traceback.format_exc())
-
-        # Use temp file
+        
+        # Use temp file that will be auto-deleted
         with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
             output_path = tmp.name
-
-        try:
-            result = process_video_with_com_overlay(
-                VIDEO_PATH, pose_data, com_data, metadata, output_path
-            )
-        except Exception as e:
-            st.error("Processing raised an exception")
-            st.code(traceback.format_exc())
-            result = None
-
+        
+        result = process_video_with_com_overlay(
+            VIDEO_PATH, pose_data, com_data, metadata, output_path
+        )
+        
         if result:
-            try:
-                if isinstance(result, str) and os.path.exists(result):
-                    with open(result, "rb") as vf:
-                        video_bytes = vf.read()
-                    st.video(video_bytes)
-                else:
-                    st.video(result)
-            except Exception as e:
-                st.warning(f"Could not load processed video as bytes: {e}; falling back to original video.")
-                try:
-                    with open(VIDEO_PATH, "rb") as vf:
-                        st.video(vf.read())
-                except Exception:
-                    st.video(VIDEO_PATH)
+            st.video(result)
+            # Note: File will be cleaned up by OS temp directory cleanup
         else:
-            # Fallback to the original preview if processing failed
-            try:
-                with open(VIDEO_PATH, "rb") as vf:
-                    st.video(vf.read())
-            except Exception:
-                st.error("Failed to process and load video")
-
+            st.error("Failed to process video")
+    
     st.markdown("---")
     
     # Analysis Tabs
@@ -279,5 +233,4 @@ def render():
         fig = plot_com_benchmark_comparison(com_data)
         st.plotly_chart(fig, width='stretch')
         st.caption("Compare your lateral COM movement against benchmarks")
-
 
