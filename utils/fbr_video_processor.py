@@ -95,7 +95,7 @@ def process_video_with_fbr(video_path, pose_data, fbr_data, metadata, output_pat
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    # Video writer - use VP80 for browser compatibility, fallback to mp4v
+    # Video writer - use mp4v codec for MP4 container
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
     
