@@ -3,7 +3,28 @@ Video processing utilities for cricket kinematics visualization.
 """
 import cv2
 import numpy as np
+import logging
+import subprocess
+import tempfile
+import os
 from utils.pose_drawing import draw_pose_on_frame
+
+logger = logging.getLogger(__name__)
+
+def _ensure_faststart(output_path):
+    """Try to remux MP4 with ffmpeg -movflags +faststart to make it streamable.
+    If ffmpeg is not available or fails, this silently logs a warning and continues.
+    """
+    try:
+        fd, tmp = tempfile.mkstemp(suffix=".mp4", dir=os.path.dirname(output_path) or None)
+        os.close(fd)
+        cmd = ["ffmpeg", "-y", "-i", output_path, "-c", "copy", "-movflags", "+faststart", tmp]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        os.replace(tmp, output_path)
+        logger.info("Remuxed video with faststart: %s", output_path)
+    except Exception as e:
+        logger.warning("ffmpeg remux failed (ffmpeg may be missing) for %s: %s", output_path, e)
+
 
 def create_video_writer(output_path, width, height, fps):
     """
@@ -90,57 +111,78 @@ def process_video_with_com_overlay(video_path, pose_data, com_data, metadata, ou
     Returns:
         Output video path or None if failed
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        return None
-    
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    
-    out = create_video_writer(output_path, width, height, fps)
-    if not out.isOpened():
-        cap.release()
-        return None
-    
-    # Extract COM data
-    com_x_series = com_data.get("com_x_series", [])
-    stance_frame = com_data.get("stance_frame", 0)
-    impact_frame = com_data.get("impact_frame", 0)
-    
-    # Create pose map for quick lookup
-    pose_map = {item['frame_idx']: item['landmarks'] for item in pose_data if item.get('landmarks')}
-    
-    frame_idx = 0
-    com_trail = []
-    trail_length = 15  # Number of frames to show in trail
-    
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+    cap = None
+    out = None
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            logger.error("Failed to open input video: %s", video_path)
+            return None
         
-        # Draw pose if available
-        landmarks = pose_map.get(frame_idx)
-        if landmarks:
-            frame = draw_pose_on_frame(frame, landmarks, width, height)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
         
-        # Draw COM if available
-        if frame_idx < len(com_x_series):
-            com_x = com_x_series[frame_idx]
+        out = create_video_writer(output_path, width, height, fps)
+        if not out.isOpened():
+            logger.error("Failed to open VideoWriter for %s", output_path)
+            return None
+        
+        # Extract COM data
+        com_x_series = com_data.get("com_x_series", [])
+        stance_frame = com_data.get("stance_frame", 0)
+        impact_frame = com_data.get("impact_frame", 0)
+        
+        # Create pose map for quick lookup
+        pose_map = {item['frame_idx']: item['landmarks'] for item in pose_data if item.get('landmarks')}
+        
+        frame_idx = 0
+        com_trail = []
+        trail_length = 15  # Number of frames to show in trail
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
             
-            # Update trail
-            com_trail.append(com_x)
-            if len(com_trail) > trail_length:
-                com_trail.pop(0)
+            # Draw pose if available
+            landmarks = pose_map.get(frame_idx)
+            if landmarks:
+                frame = draw_pose_on_frame(frame, landmarks, width, height)
             
-            frame = draw_com_on_frame(frame, com_x, frame_idx, stance_frame, 
-                                     impact_frame, com_trail, width, height)
+            # Draw COM if available
+            if frame_idx < len(com_x_series):
+                com_x = com_x_series[frame_idx]
+                
+                # Update trail
+                com_trail.append(com_x)
+                if len(com_trail) > trail_length:
+                    com_trail.pop(0)
+                
+                frame = draw_com_on_frame(frame, com_x, frame_idx, stance_frame, 
+                                         impact_frame, com_trail, width, height)
+            
+            out.write(frame)
+            frame_idx += 1
         
-        out.write(frame)
-        frame_idx += 1
-    
-    cap.release()
-    out.release()
-    
-    return output_path
+        # Try to make file streamable
+        try:
+            _ensure_faststart(output_path)
+        except Exception:
+            pass
+        
+        return output_path
+    except Exception as e:
+        logger.exception("Error while processing COM overlay: %s", e)
+        return None
+    finally:
+        try:
+            if cap is not None:
+                cap.release()
+        except Exception:
+            pass
+        try:
+            if out is not None:
+                out.release()
+        except Exception:
+            pass
