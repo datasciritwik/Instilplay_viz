@@ -96,14 +96,15 @@ def process_video_with_hip_shoulder(video_path, pose_data, hs_data, metadata, ou
     fps = cap.get(cv2.CAP_PROP_FPS)
     
     # Video writer
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    
+    
+    if not output_path.endswith('.avi'):
+        output_path = output_path.rsplit('.', 1)[0] + '.avi'
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        
     
-    if not out.isOpened():
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-    
-    if not out.isOpened():
+    if not output_path.endswith('.avi'):
         cap.release()
         return None
     
