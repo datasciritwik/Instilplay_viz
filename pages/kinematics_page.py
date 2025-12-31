@@ -3,6 +3,7 @@ Kinematics Analysis Page
 Displays kinematic sequencing analysis with hip-torso-shoulder coordination.
 """
 import streamlit as st
+import os
 from utils.data_loader import load_kinematics_data, load_metadata
 
 # Constants
@@ -152,7 +153,17 @@ def render():
         )
         
         if result:
-            st.video(result)
+            try:
+                if isinstance(result, str) and os.path.exists(result):
+                    with open(result, "rb") as vf:
+                        video_bytes = vf.read()
+                    st.video(video_bytes)
+                    st.download_button("Download processed video", data=video_bytes, file_name=os.path.basename(result), mime="video/mp4")
+                else:
+                    st.video(result)
+            except Exception as e:
+                st.warning(f"Could not load processed video as bytes: {e}; falling back to path.")
+                st.video(result)
         else:
             st.error("Failed to process video")
     

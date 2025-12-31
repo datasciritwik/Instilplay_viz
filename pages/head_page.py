@@ -148,8 +148,18 @@ def render():
         )
         
         if result:
-            st.video(result)
-            # Note: File will be cleaned up by OS temp directory cleanup
+            try:
+                if isinstance(result, str) and os.path.exists(result):
+                    with open(result, "rb") as vf:
+                        video_bytes = vf.read()
+                    st.video(video_bytes)
+                    st.download_button("Download processed video", data=video_bytes, file_name=os.path.basename(result), mime="video/mp4")
+                else:
+                    st.video(result)
+                # Note: File will be cleaned up by OS temp directory cleanup
+            except Exception as e:
+                st.warning(f"Could not load processed video as bytes: {e}; falling back to path.")
+                st.video(result)
         else:
             st.error("Failed to process video")
     

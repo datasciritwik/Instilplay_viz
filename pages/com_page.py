@@ -138,7 +138,15 @@ def render():
     
     # Video Section
     st.markdown("### Video")
-    st.video(VIDEO_PATH)
+    try:
+        with open(VIDEO_PATH, "rb") as vf:
+            video_bytes = vf.read()
+        st.video(video_bytes)
+        st.download_button("Download video", data=video_bytes, file_name=os.path.basename(VIDEO_PATH), mime="video/mp4")
+    except Exception as e:
+        st.warning(f"Could not load video as bytes: {e}; falling back to displaying by path.")
+        st.video(VIDEO_PATH)
+        st.markdown(f"Raw path: `{VIDEO_PATH}`")
     
     st.markdown("---")
     
