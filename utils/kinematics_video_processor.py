@@ -128,17 +128,12 @@ def process_video_with_kinematics(video_path, pose_data, kin_data, metadata, out
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    # Video writer
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    
-    
-    if not output_path.endswith('.avi'):
-        output_path = output_path.rsplit('.', 1)[0] + '.avi'
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-        
-    
-    if not output_path.endswith('.avi'):
+    # Create video writer using automatic codec detection for web compatibility
+    from utils.video_processor import create_video_writer
+    out, final_output_path = create_video_writer(output_path, width, height, int(fps) if fps else 24)
+    if out is None:
         cap.release()
+        print("ERROR: Cannot create video writer")
         return None
     
     # Extract kinematics data
@@ -172,4 +167,4 @@ def process_video_with_kinematics(video_path, pose_data, kin_data, metadata, out
     cap.release()
     out.release()
     
-    return output_path
+    return final_output_path
