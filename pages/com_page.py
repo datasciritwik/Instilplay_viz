@@ -136,26 +136,9 @@ def render():
     
     st.markdown("---")
     
-    # Video Section with COM Overlay
-    st.markdown("### Video with COM Overlay")
-    
-    with st.spinner("Processing video with COM annotations..."):
-        from utils.video_processor import process_video_with_com_overlay
-        import tempfile
-        
-        # Use temp file that will be auto-deleted
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
-            output_path = tmp.name
-        
-        result = process_video_with_com_overlay(
-            VIDEO_PATH, pose_data, com_data, metadata, output_path
-        )
-        
-        if result:
-            st.video(result)
-            # Note: File will be cleaned up by OS temp directory cleanup
-        else:
-            st.error("Failed to process video")
+    # Video Section
+    st.markdown("### Video")
+    st.video(VIDEO_PATH)
     
     st.markdown("---")
     
@@ -233,4 +216,5 @@ def render():
         fig = plot_com_benchmark_comparison(com_data)
         st.plotly_chart(fig, width='stretch')
         st.caption("Compare your lateral COM movement against benchmarks")
+
 

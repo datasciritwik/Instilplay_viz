@@ -215,3 +215,5 @@ def render():
         fig = plot_benchmark_comparison(head_data)
         st.plotly_chart(fig, width='stretch')
         st.caption("Compare your stability score against professional benchmarks")
+
+

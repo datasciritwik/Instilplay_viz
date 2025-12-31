@@ -275,3 +275,5 @@ def render():
         st.plotly_chart(fig, width='stretch')
         st.caption("Polar chart breaking down efficiency score components")
 
+
+

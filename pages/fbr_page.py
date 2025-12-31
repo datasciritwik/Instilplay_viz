@@ -231,3 +231,5 @@ def render():
         fig = plot_impact_force_estimate(fbr_data, metadata)
         st.plotly_chart(fig, width='stretch')
         st.caption("Estimated impact force at foot plant")
+
+

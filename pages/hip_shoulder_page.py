@@ -218,3 +218,5 @@ def render():
         fig = plot_frame_by_frame_rate(hs_data, metadata)
         st.plotly_chart(fig, width='stretch')
         st.caption("Angular velocity and acceleration - identifies explosive moments")
+
+
