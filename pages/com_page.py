@@ -136,18 +136,46 @@ def render():
     
     st.markdown("---")
     
-    # Video Section
-    st.markdown("### Video")
-    try:
-        with open(VIDEO_PATH, "rb") as vf:
-            video_bytes = vf.read()
-        st.video(video_bytes)
-        st.download_button("Download video", data=video_bytes, file_name=os.path.basename(VIDEO_PATH), mime="video/mp4")
-    except Exception as e:
-        st.warning(f"Could not load video as bytes: {e}; falling back to displaying by path.")
-        st.video(VIDEO_PATH)
-        st.markdown(f"Raw path: `{VIDEO_PATH}`")
-    
+    # Video Section (processed)
+    st.markdown("### Video with COM Overlay")
+    with st.spinner("Processing video with COM overlay..."):
+        from utils.video_processor import process_video_with_com_overlay
+        from utils.data_loader import load_pose_data
+        import tempfile
+
+        pose_data = load_pose_data(JSON_PATH)
+
+        # Use temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as tmp:
+            output_path = tmp.name
+
+        result = process_video_with_com_overlay(
+            VIDEO_PATH, pose_data, com_data, metadata, output_path
+        )
+
+        if result:
+            try:
+                if isinstance(result, str) and os.path.exists(result):
+                    with open(result, "rb") as vf:
+                        video_bytes = vf.read()
+                    st.video(video_bytes)
+                else:
+                    st.video(result)
+            except Exception as e:
+                st.warning(f"Could not load processed video as bytes: {e}; falling back to original video.")
+                try:
+                    with open(VIDEO_PATH, "rb") as vf:
+                        st.video(vf.read())
+                except Exception:
+                    st.video(VIDEO_PATH)
+        else:
+            # Fallback to the original preview if processing failed
+            try:
+                with open(VIDEO_PATH, "rb") as vf:
+                    st.video(vf.read())
+            except Exception:
+                st.error("Failed to process and load video")
+
     st.markdown("---")
     
     # Analysis Tabs

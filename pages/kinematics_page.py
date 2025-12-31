@@ -158,7 +158,6 @@ def render():
                     with open(result, "rb") as vf:
                         video_bytes = vf.read()
                     st.video(video_bytes)
-                    st.download_button("Download processed video", data=video_bytes, file_name=os.path.basename(result), mime="video/mp4")
                 else:
                     st.video(result)
             except Exception as e:
